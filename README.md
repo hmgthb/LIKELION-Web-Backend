@@ -30,20 +30,24 @@
 ## ⚙️ 설치 및 실행 방법
 
 ### 1. 의존성 설치
+
 ```bash
 npm install
 ```
 
 ### 2. 환경 변수 설정
+
 `.env` 파일을 생성하고 아래 내용을 추가하세요:
 
 ```
-SUPABASE_URL=YOUR_SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
+SUPABASE_URL=https://jfvhyhyragrcunozazhn.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impmdmh5aHlyYWdyY3Vub3phemhuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDQ0MzQ1OSwiZXhwIjoyMDc2MDE5NDU5fQ.4QtAOt5ZkW-raiGkzk-yonCl-cveDkmCsHAF_-QocaQ
 PORT=3000
+FIREBASE_WEB_API_KEY=AIzaSyANvIGvts47XG1vnDIVDSKa8gnh88Z0ukw
 ```
 
 ### 3. 개발 서버 실행
+
 ```bash
 npm run dev
 ```
@@ -71,7 +75,7 @@ src/
 
 ## 🧑‍💻 개발자 참고
 
-- Supabase의 테이블 이름 및 관계(FK)는 실제 DB 스키마에 맞게 수정하세요.  
+- Supabase의 테이블 이름 및 관계(FK)는 실제 DB 스키마에 맞게 수정하세요.
 - 서버 키(Service Role Key)는 **절대 클라이언트 코드에 노출하지 마세요.**
 
 ---

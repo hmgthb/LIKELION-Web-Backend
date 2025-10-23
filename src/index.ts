@@ -2,8 +2,9 @@ import express from 'express';
 import projectsRouter from './routes/projects';
 import adminsRouter from './routes/admins';
 import photosRouter from './routes/photos';
-import signup_admin from './routes/signup_admin';
-import signup_member from './routes/signup_member';
+import loginRouter from './routes/login';
+import signupMemberRouter from './routes/signup_member';
+import signupAdminRouter from './routes/signup_admin';
 
 const app = express();
 app.use(express.json());
@@ -18,7 +19,10 @@ app.listen(PORT, () => {
   console.log(`✅ API running at http://localhost:${PORT}`);
 });
 
-app.use('/api', signup_admin);
-app.use('/api', signup_member);
+app.use('/api', loginRouter);
+app.use('/api', signupMemberRouter);
+app.use('/api', signupAdminRouter);
 
-app.listen(3000, () => console.log('✅ Server running on port 3000'));
+app.listen(3000, () =>
+  console.log('✅ Server running on http://localhost:${PORT}')
+);
