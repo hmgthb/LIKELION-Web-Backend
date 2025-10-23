@@ -20,13 +20,11 @@ router.post('/member-users/signup', async (req: Request, res: Response) => {
 
     const { data, error } = await supabase.from('Members').insert([
       {
-        firebase_uid: userRecord.uid,
+        //member_id: userRecord.uid,
         school_email,
         korean_name,
         english_name,
         graduate_year,
-        is_admin: false,
-        is_active: true,
       },
     ]);
 
@@ -34,7 +32,7 @@ router.post('/member-users/signup', async (req: Request, res: Response) => {
 
     res.status(201).json({
       message: 'Member registered successfully',
-      firebase_uid: userRecord.uid,
+      //member_id: userRecord.uid,
     });
   } catch (err: any) {
     console.error('[member-signup] error:', err);
