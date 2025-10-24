@@ -6,7 +6,7 @@ const router = Router();
 
 /**
  * POST /api/member-users/signup
- * Body: { school_email, password, korean_name, english_name, graduate_year }
+ * Body: { school_email, password, korean_name, english_name, graduate_year, current_university, team }
  */
 router.post('/member-users/signup', async (req: Request, res: Response) => {
   const {
