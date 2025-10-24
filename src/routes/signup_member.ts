@@ -9,8 +9,15 @@ const router = Router();
  * Body: { school_email, password, korean_name, english_name, graduate_year }
  */
 router.post('/member-users/signup', async (req: Request, res: Response) => {
-  const { school_email, password, korean_name, english_name, graduate_year } =
-    req.body;
+  const {
+    school_email,
+    password,
+    korean_name,
+    english_name,
+    graduate_year,
+    current_university,
+    team,
+  } = req.body;
 
   try {
     const userRecord = await admin.auth().createUser({
@@ -25,6 +32,8 @@ router.post('/member-users/signup', async (req: Request, res: Response) => {
         korean_name,
         english_name,
         graduate_year,
+        current_university,
+        team,
       },
     ]);
 
