@@ -6,6 +6,7 @@ import signupMemberRouter from './routes/signup_member';
 import signupAdminRouter from './routes/signup_admin';
 import loginRouter from './routes/login';
 import attendanceRouter from './routes/attendance';
+import cors from 'cors';
 
 const app = express();
 app.use(express.json());
@@ -19,6 +20,9 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ API running at http://localhost:${PORT}`);
 });
+app.use(cors({
+  origin: 'http://localhost:3001'  // 프론트엔드 주소
+}));
 
 app.use('/api', signupMemberRouter);
 app.use('/api', signupAdminRouter);
