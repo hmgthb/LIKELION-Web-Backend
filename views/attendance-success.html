@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Attendance Success</title>
+  </head>
+  <body style="text-align: center; font-family: sans-serif">
+    <h2>출석 완료 🎉</h2>
+    <p><b id="name"></b>님, 출석이 정상적으로 기록되었습니다!</p>
+    <p>이번 회차: <span id="meeting"></span></p>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      document.getElementById('name').textContent = params.get('name');
+      document.getElementById('meeting').textContent = params.get('meeting');
+    </script>
+  </body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>LLUS Attendance QR</title>
+  </head>
+  <body style="text-align: center; font-family: sans-serif">
+    <h2>Meeting #<span id="meeting-number"></span> Attendance</h2>
+    <img id="qr-image" alt="QR Code" style="width: 250px" />
+    <p id="status">Loading QR Code...</p>
+
+    <script>
+      async function loadQR() {
+        const res = await fetch(`/api/qr-create?`);
+        const data = await res.json();
+
+        if (data.qr_image) {
+          document.getElementById('qr-image').src = data.qr_image;
+          document.getElementById('status').textContent = 'Scan to check in!';
+        } else {
+          document.getElementById('status').textContent = 'QR Code 생성 실패';
+        }
+      }
+      loadQR();
+    </script>
+  </body>
+</html>
