@@ -4,23 +4,63 @@
     <title>LLUS Attendance QR</title>
   </head>
   <body style="text-align: center; font-family: sans-serif">
-    <h2>Meeting #<span id="meeting-number"></span> Attendance</h2>
-    <img id="qr-image" alt="QR Code" style="width: 250px" />
-    <p id="status">Loading QR Code...</p>
+    <h2>Attendance QR Generator</h2>
+
+    <!-- 미팅 번호 입력창 -->
+    <input
+      type="number"
+      id="meeting-input"
+      placeholder="Enter meeting number"
+      style="padding: 8px; font-size: 16px; width: 200px"
+    />
+    <br /><br />
+
+    <!-- 생성 버튼 -->
+    <button
+      onclick="loadQR()"
+      style="padding: 10px 20px; font-size: 16px; cursor: pointer"
+    >
+      Generate QR Code
+    </button>
+
+    <br /><br />
+
+    <!-- QR 이미지 -->
+    <div style="display: flex; justify-content: center; margin-top: 30px">
+      <img id="qr-image" alt="QR Code" style="width: 250px; display: none" />
+    </div>
+    <p id="status"></p>
 
     <script>
       async function loadQR() {
-        const res = await fetch(`/api/qr-create?`);
+        // 사용자 입력값 읽기
+        const meeting_number = document.getElementById('meeting-input').value;
+
+        if (!meeting_number) {
+          document.getElementById('status').textContent =
+            'Please enter a meeting number.';
+          return;
+        }
+
+        document.getElementById('status').textContent = 'Loading QR Code...';
+
+        // 백엔드에 meeting_number 포함해서 QR 생성 요청
+        const res = await fetch(
+          `/api/qr-create?meeting_number=${meeting_number}`
+        );
         const data = await res.json();
 
         if (data.qr_image) {
           document.getElementById('qr-image').src = data.qr_image;
-          document.getElementById('status').textContent = 'Scan to check in!';
+          document.getElementById('qr-image').style.display = 'block';
+          document.getElementById(
+            'status'
+          ).textContent = `QR Code for Meeting #${meeting_number}`;
         } else {
-          document.getElementById('status').textContent = 'QR Code 생성 실패';
+          document.getElementById('status').textContent =
+            'Failed to generate QR code.';
         }
       }
-      loadQR();
     </script>
   </body>
 </html>

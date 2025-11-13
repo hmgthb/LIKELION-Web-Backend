@@ -9,14 +9,14 @@ const router = Router();
  * Body: { school_email, password }
  */
 router.post('/attendance', async (req: Request, res: Response) => {
-  const { school_email, password } = req.body;
+  const { school_email, password, meeting_number } = req.body;
 
-  if (!school_email || !password) {
-    return res.status(400).json({ error: 'Missing email or password' });
+  if (!school_email || !password || !meeting_number) {
+    return res.status(400).json({ error: 'Missing fields' });
   }
 
   try {
-    // ✅ 1️⃣ Firebase REST API로 로그인 시도
+    // 1️⃣ Firebase 로그인
     const apiKey = process.env.FIREBASE_WEB_API_KEY;
     const firebaseAuthUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
 
@@ -32,7 +32,7 @@ router.post('/attendance', async (req: Request, res: Response) => {
     // 로그인 성공 시, Firebase 계정 정보 확인
     const { localId } = response.data;
 
-    // ✅ 2️⃣ Supabase에서 해당 멤버 찾기
+    // 2️⃣ Supabase에서 회원 찾기
     const { data: users, error: userError } = await supabase
       .from('Members')
       .select('member_id, school_email, korean_name, english_name')
@@ -44,28 +44,31 @@ router.post('/attendance', async (req: Request, res: Response) => {
 
     const user = users[0];
 
-    // ✅ 3️⃣ Attendance 테이블에 출석 기록 추가
-    // timestamp는 Supabase에서 자동으로 now()로 채워짐
+    // 3️⃣ Attendance 테이블에 출석 삽입
     const { data: attendance, error: attendanceError } = await supabase
       .from('Attendance')
-      .insert([{ member_id: user.member_id }]) // 👈 필수 컬럼만 삽입
+      .insert([
+        {
+          member_id: user.member_id,
+          meeting_number: Number(meeting_number), // 🔥 핵심 추가
+        },
+      ])
       .select()
       .single();
 
     if (attendanceError) throw attendanceError;
 
-    // ✅ 🔥 뉴욕 시간으로 변환
+    // 4️⃣ timestamp를 NY 시간으로 변환
     const nyTime = new Date(attendance.timestamp).toLocaleString('en-US', {
       timeZone: 'America/New_York',
     });
 
-    // ✅ 4️⃣ 성공 응답
     res.status(200).json({
       message: 'Attendance recorded successfully',
       member: user,
       attendance: {
         ...attendance,
-        ny_timestamp: nyTime, // ✅ 뉴욕 시간 추가
+        ny_timestamp: nyTime,
       },
     });
   } catch (err: any) {
