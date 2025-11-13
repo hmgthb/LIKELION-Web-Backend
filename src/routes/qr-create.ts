@@ -4,7 +4,7 @@ import QRCode from 'qrcode';
 const router = Router();
 
 /**
- * GET /api/qr-create?meeting_number=5
+ * GET /api/qr-create?meeting_number=${meeting_number}
  * Returns: QR code that links to attendance page with meeting number
  */
 router.get('/qr-create', async (req: Request, res: Response) => {
