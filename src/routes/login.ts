@@ -10,11 +10,13 @@ const router = Router();
  * Body: { school_email, password }
  */
 router.post('/login', async (req: Request, res: Response) => {
-  const { school_email, password } = req.body;
+  let { school_email, password } = req.body;
 
   if (!school_email || !password) {
     return res.status(400).json({ error: 'Missing email or password' });
   }
+
+  school_email = school_email.toLowerCase();
 
   try {
     // ✅ Firebase REST API를 이용해서 로그인

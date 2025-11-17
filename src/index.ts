@@ -3,7 +3,6 @@ import projectsRouter from './routes/projects';
 import adminsRouter from './routes/admins';
 import photosRouter from './routes/photos';
 import signupMemberRouter from './routes/signup_member';
-import signupAdminRouter from './routes/signup_admin';
 import loginRouter from './routes/login';
 import attendanceRouter from './routes/attendance';
 import cors from 'cors';
@@ -29,7 +28,6 @@ app.use('/api', adminsRouter);
 app.use('/api', photosRouter);
 app.use('/api', qrCreate);
 app.use('/api', signupMemberRouter);
-app.use('/api', signupAdminRouter);
 app.use('/api', loginRouter);
 app.use('/api', attendanceRouter);
 
