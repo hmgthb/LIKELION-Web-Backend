@@ -123,7 +123,7 @@ router.post('/member-users/signup', async (req: Request, res: Response) => {
         school_email,
         korean_name,
         english_name,
-        graduate_year,
+        graduate_year: yearNum,
         current_university,
         team,
       },
