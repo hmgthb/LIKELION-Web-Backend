@@ -20,7 +20,7 @@ router.post('/member-users/signup', async (req: Request, res: Response) => {
   } = req.body;
 
   try {
-    // 비어 있는 값 체크
+    // 1. 공백 검사
     if (
       !school_email ||
       !password ||
@@ -35,20 +35,26 @@ router.post('/member-users/signup', async (req: Request, res: Response) => {
       });
     }
 
-    // 이메일을 공백 없는 소문자로 전환
+    // 문자열 다듬기
     school_email = school_email.trim().toLowerCase();
-
-    // Korean Name 앞뒤 공백 제거
     korean_name = korean_name.trim();
+    english_name = english_name.trim();
 
-    // Korean Name이 한글로 이루어져 있는지 확인
+    // 1-1. Korean Name: 한글만 허용
     if (!/^[가-힣]+$/.test(korean_name)) {
       return res.status(400).json({
         error: 'Korean Name must contain only Korean characters.',
       });
     }
 
-    // 자동 Capitalization: 각 단어 첫 글자 대문자로 변경
+    // 1-2. Korean Name: 최대 10글자 허용
+    if (korean_name.length > 10) {
+      return res.status(400).json({
+        error: 'Korean Name must be at most 10 characters.',
+      });
+    }
+
+    // 2-1. English Name: 첫글자 대문자로 변환 + 알파벳만 허용
     english_name = english_name
       .split(' ')
       .map(
@@ -57,37 +63,50 @@ router.post('/member-users/signup', async (req: Request, res: Response) => {
       )
       .join(' ');
 
-    // English Name이 영어로 이루어져 있는지 확인
     if (!/^[A-Za-z\s]+$/.test(english_name)) {
       return res.status(400).json({
         error: 'English name must contain only English letters.',
       });
     }
 
-    // @school.edu 형식으로 끝나는 이메일인지 확인
-    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.edu$/.test(school_email)) {
+    // 2-2. English Name: 최대 50글자 허용
+    if (english_name.length > 50) {
       return res.status(400).json({
-        error: 'School email required (example@school.edu).',
+        error: 'English Name must be at most 50 characters.',
       });
     }
 
-    // password에 공백이 포함되는지 확인
+    // 3. School Email: example@school.edu 형식 검사
+    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.edu$/.test(school_email)) {
+      return res.status(400).json({
+        error: 'School Email must be a valid email address.',
+      });
+    }
+
+    // 4-1. Password: 최소 6글자 이상
+    if (password.length < 6) {
+      return res.status(400).json({
+        error: 'Password must be at least 6 characters long.',
+      });
+    }
+
+    // 4-2. Password: 공백 포함 금지
     if (/\s/.test(password)) {
       return res.status(400).json({ error: 'Password cannot contain spaces.' });
     }
 
-    // graduate_year 숫자 변환
-    graduate_year = Number(graduate_year);
-
-    // graduate_year이 숫자가 맞는지, 1950년부터 2050년 사이인지 확인
-    if (
-      isNaN(graduate_year) ||
-      !Number.isInteger(graduate_year) ||
-      graduate_year < 1950 ||
-      graduate_year > 2050
-    ) {
+    // 5-1. Graduation Year: 숫자로만 구성됐는지 확인
+    if (!/^\d+$/.test(graduate_year)) {
       return res.status(400).json({
-        error: 'Graduation year must be an integer between 1950 and 2050.',
+        error: 'Graduation year must contain only integers.',
+      });
+    }
+
+    // 5-2. Graduation Year: 숫자 + 범위 체크
+    const yearNum = Number(graduate_year);
+    if (yearNum < 1950 || yearNum > 2050) {
+      return res.status(400).json({
+        error: 'Graduation year must be between 1950 and 2050.',
       });
     }
 
