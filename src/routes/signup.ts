@@ -5,10 +5,10 @@ import { supabase } from '../lib/supabase';
 const router = Router();
 
 /**
- * POST /api/member-users/signup
+ * POST /api/user/signup
  * Body: { school_email, password, korean_name, english_name, graduate_year, current_university, team }
  */
-router.post('/member-users/signup', async (req: Request, res: Response) => {
+router.post('/user/signup', async (req: Request, res: Response) => {
   let {
     school_email,
     password,
