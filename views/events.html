@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Events Calendar (NY Time)</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      h1 {
+        margin-bottom: 20px;
+      }
+      .event {
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+      .title {
+        font-weight: bold;
+        font-size: 18px;
+      }
+      .category {
+        color: #555;
+      }
+      .time {
+        color: #333;
+        margin-top: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>📅 LikeLion NYU Events (NY Time)</h1>
+
+    <div id="events"></div>
+
+    <script>
+      async function loadEvents() {
+        try {
+          const res = await fetch('/api/events');
+          const data = await res.json();
+
+          const container = document.getElementById('events');
+          container.innerHTML = '';
+
+          data.events.forEach((event) => {
+            const start = new Date(event.start_date).toLocaleString('en-US', {
+              timeZone: 'America/New_York',
+            });
+            const end = new Date(event.end_date).toLocaleString('en-US', {
+              timeZone: 'America/New_York',
+            });
+
+            const div = document.createElement('div');
+            div.className = 'event';
+
+            div.innerHTML = `
+            <div class="title">${event.event_title}</div>
+            <div class="category">${event.category}</div>
+            <div class="time">🕒 ${start} → ${end}</div>
+            <div>📍 ${event.location ?? 'N/A'}</div>
+            <div>${event.description ?? ''}</div>
+          `;
+
+            container.appendChild(div);
+          });
+        } catch (err) {
+          console.error(err);
+          alert('Failed to load events');
+        }
+      }
+
+      loadEvents();
+    </script>
+  </body>
+</html>
