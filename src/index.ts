@@ -29,6 +29,10 @@ app.use(
 const viewsPath = path.resolve(process.cwd(), 'views');
 app.use(express.static(viewsPath));
 
+app.get('/', (_req, res) => {
+  res.send('LIKELION API Server is running');
+});
+
 // All routes share the same base prefix:
 app.use('/api', projectsRouter);
 app.use('/api', adminsRouter);
