@@ -21,7 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
     //origin: 'http://localhost:3001',
-    origin: 'https://likelion-web-frontend.vercel.app/',
+    origin: 'https://likelion-web-frontend.vercel.app',
     credentials: true
   })
 );
@@ -45,3 +45,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ API running on http://localhost:${PORT}`);
 });
+
+export default app;
