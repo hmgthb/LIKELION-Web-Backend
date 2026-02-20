@@ -12,6 +12,7 @@ import qrCreate from './routes/qr-create';
 import adminManageMembersRouter from './routes/adminpage-manage_members';
 import adminBulkSave from './routes/adminpage-save_manage_members';
 import eventsRouter from './routes/events';
+import adminAttendanceListRouter from './routes/adminpage-attendance_list';
 
 const app = express();
 
@@ -22,8 +23,8 @@ app.use(
   cors({
     //origin: 'http://localhost:3001',
     origin: 'https://likelion-web-frontend.vercel.app',
-    credentials: true
-  })
+    credentials: true,
+  }),
 );
 
 const viewsPath = path.resolve(process.cwd(), 'views');
@@ -44,6 +45,7 @@ app.use('/api', attendanceRouter);
 app.use('/api', adminManageMembersRouter);
 app.use('/api', adminBulkSave);
 app.use('/api', eventsRouter);
+app.use('/api', adminAttendanceListRouter);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
