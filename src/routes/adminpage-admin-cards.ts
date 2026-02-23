@@ -46,6 +46,9 @@ router.post("/adminpage/admin-cards", async (req: Request, res: Response) => {
     .single();
 
   if (error) {
+    if (error.code === "23505") {
+      return res.status(409).json({ error: `display_order ${display_order} is already in use` });
+    }
     console.error("[admin-cards POST] error:", error);
     return res.status(500).json({ error: "Failed to create admin card", detail: error.message });
   }
@@ -77,6 +80,9 @@ router.put("/adminpage/admin-cards/:id", async (req: Request, res: Response) => 
     .single();
 
   if (error) {
+    if (error.code === "23505") {
+      return res.status(409).json({ error: `display_order ${display_order} is already in use` });
+    }
     console.error("[admin-cards PUT] error:", error);
     return res.status(500).json({ error: "Failed to update admin card", detail: error.message });
   }
