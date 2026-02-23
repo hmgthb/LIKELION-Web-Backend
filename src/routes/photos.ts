@@ -1,7 +1,9 @@
 import { Router, Request, Response } from "express";
+import multer from "multer";
 import { supabase } from "../lib/supabase";
 
 const router = Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 /**
  * GET /api/retrieve-all-photos
@@ -9,68 +11,221 @@ const router = Router();
  */
 router.get("/retrieve-all-photos", async (_req: Request, res: Response) => {
   try {
-    // --- Retrieve member photos ---
-    const { data: memberPhotos, error: memberError } = await supabase
-      .from("Members_Photos")
-      .select(`
-        id,
-        member_id,
-        photo:Photos (
-          photo_id,
-          date,
-          description,
-          member_id,
-          photo_url
-        )
-      `);
+    // --- 1. Link tables (no FK join) ---
+    const [
+      { data: memberLinks, error: memberLinksError },
+      { data: projectLinks, error: projectLinksError },
+    ] = await Promise.all([
+      supabase.from("Members_Photos").select("id, member_id, photo_id"),
+      supabase.from("Projects_Photos").select("project_id, photo_id, project_photo_url"),
+    ]);
 
-    if (memberError) throw memberError;
+    if (memberLinksError) throw memberLinksError;
+    if (projectLinksError) throw projectLinksError;
 
-    // --- Retrieve project photos ---
-    const { data: projectPhotos, error: projectError } = await supabase
-      .from("Projects_Photos")
-      .select(`
-        id,
-        project_id,
-        photo:Photos (
-          photo_id,
-          date,
-          description,
-          member_id,
-          photo_url
-        ),
-        project_photo_url
-      `);
+    // --- 2. Collect all referenced photo_ids ---
+    const photoIds = [
+      ...new Set([
+        ...(memberLinks ?? []).map((m: any) => m.photo_id),
+        ...(projectLinks ?? []).map((p: any) => p.photo_id),
+      ].filter(Boolean)),
+    ];
 
-    if (projectError) throw projectError;
+    // --- 3. Fetch Photos in one query ---
+    let photoMap: Record<number, any> = {};
+    if (photoIds.length > 0) {
+      const { data: photos, error: photosError } = await supabase
+        .from("Photos")
+        .select("photo_id, date, description, member_id, photo_url")
+        .in("photo_id", photoIds);
 
-    // --- Normalize / Flatten results ---
-    const memberPhotoList = (memberPhotos ?? []).map((m: any) => ({
-      link_id: m.id,
-      member_id: m.member_id,
-      photo_id: m.photo?.photo_id,
-      date: m.photo?.date,
-      description: m.photo?.description,
-      photo_url: m.photo?.photo_url,
-      source: "member",
-    }));
+      if (photosError) throw photosError;
 
-    const projectPhotoList = (projectPhotos ?? []).map((p: any) => ({
-      link_id: p.id,
-      project_id: p.project_id,
-      photo_id: p.photo?.photo_id,
-      date: p.photo?.date,
-      description: p.photo?.description,
-      photo_url: p.photo?.photo_url ?? p.project_photo_url,
-      source: "project",
-    }));
+      photoMap = Object.fromEntries((photos ?? []).map((p: any) => [p.photo_id, p]));
+    }
 
-    const allPhotos = [...memberPhotoList, ...projectPhotoList];
+    // --- 4. Normalize / Flatten results ---
+    const memberPhotoList = (memberLinks ?? []).map((m: any) => {
+      const photo = photoMap[m.photo_id] ?? {};
+      return {
+        link_id: m.id,
+        member_id: m.member_id,
+        photo_id: m.photo_id,
+        date: photo.date,
+        description: photo.description,
+        photo_url: photo.photo_url,
+        source: "member",
+      };
+    });
 
-    res.json({ photos: allPhotos });
-  } catch (err) {
+    const projectPhotoList = (projectLinks ?? []).map((p: any) => {
+      const photo = photoMap[p.photo_id] ?? {};
+      return {
+        project_id: p.project_id,
+        photo_id: p.photo_id,
+        date: photo.date,
+        description: photo.description,
+        photo_url: photo.photo_url ?? p.project_photo_url,
+        source: "project",
+      };
+    });
+
+    res.json({ photos: [...memberPhotoList, ...projectPhotoList] });
+  } catch (err: any) {
     console.error("[retrieve-all-photos] error:", err);
-    res.status(500).json({ error: "Failed to retrieve all photos" });
+    res.status(500).json({ error: "Failed to retrieve all photos", detail: err?.message ?? err });
+  }
+});
+
+/**
+ * POST /api/photos/upload
+ * Uploads a photo to Supabase Storage and saves metadata to Photos table.
+ * Form-data: file (required), date?, description?, member_id?, linked_member_id?, linked_project_id?
+ */
+router.post("/photos/upload", upload.single("file"), async (req: Request, res: Response) => {
+  const file = req.file;
+  if (!file) {
+    return res.status(400).json({ error: "file is required" });
+  }
+
+  const { date, description, member_id, linked_member_id, linked_project_id } = req.body;
+
+  // 파일명 중복 방지를 위해 타임스탬프 prefix 추가
+  const fileName = `${Date.now()}_${file.originalname}`;
+
+  // 1. Supabase Storage에 파일 업로드
+  const { error: storageError } = await supabase.storage
+    .from("photos")
+    .upload(fileName, file.buffer, { contentType: file.mimetype });
+
+  if (storageError) {
+    console.error("[photos/upload] storage error:", storageError);
+    return res.status(500).json({ error: "Failed to upload file" });
+  }
+
+  // 2. public URL 생성
+  const { data: urlData } = supabase.storage.from("photos").getPublicUrl(fileName);
+  const photo_url = urlData.publicUrl;
+
+  // 3. Photos 테이블에 메타데이터 저장
+  const { data: photo, error: dbError } = await supabase
+    .from("Photos")
+    .insert({ date, description, member_id: member_id ? Number(member_id) : null, photo_url })
+    .select()
+    .single();
+
+  if (dbError) {
+    console.error("[photos/upload] db error:", dbError);
+    return res.status(500).json({ error: "Failed to save photo metadata" });
+  }
+
+  // 4. 멤버 또는 프로젝트에 연결
+  if (linked_member_id) {
+    const { error: linkError } = await supabase
+      .from("Members_Photos")
+      .insert({ member_id: Number(linked_member_id), photo_id: photo.photo_id });
+    if (linkError) console.error("[photos/upload] member link error:", linkError);
+  }
+
+  if (linked_project_id) {
+    const { error: linkError } = await supabase
+      .from("Projects_Photos")
+      .insert({ project_id: Number(linked_project_id), photo_id: photo.photo_id });
+    if (linkError) console.error("[photos/upload] project link error:", linkError);
+  }
+
+  res.status(201).json({ photo });
+});
+
+/**
+ * DELETE /api/photos/delete
+ * Deletes a photo: removes the link record, the Photos row, and the Storage file.
+ * Body: { photo_id, link_id? (member), project_id? (project) }
+ */
+router.delete("/photos/delete", async (req: Request, res: Response) => {
+  const { photo_id, link_id, project_id } = req.body;
+
+  if (!photo_id) {
+    return res.status(400).json({ error: "photo_id is required" });
+  }
+
+  try {
+    // 1. Delete link record
+    if (link_id) {
+      const { error } = await supabase.from("Members_Photos").delete().eq("id", link_id);
+      if (error) throw error;
+    } else if (project_id) {
+      const { error } = await supabase
+        .from("Projects_Photos")
+        .delete()
+        .eq("project_id", project_id)
+        .eq("photo_id", photo_id);
+      if (error) throw error;
+    }
+
+    // 2. Get photo_url to delete from Storage
+    const { data: photoRow, error: fetchError } = await supabase
+      .from("Photos")
+      .select("photo_url")
+      .eq("photo_id", photo_id)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    // 3. Delete from Photos table
+    const { error: deleteError } = await supabase.from("Photos").delete().eq("photo_id", photo_id);
+    if (deleteError) throw deleteError;
+
+    // 4. Delete from Storage (extract filename from URL)
+    if (photoRow?.photo_url) {
+      const fileName = photoRow.photo_url.split("/photos/").pop();
+      if (fileName) {
+        await supabase.storage.from("photos").remove([fileName]);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error("[photos/delete] error:", err);
+    res.status(500).json({ error: "Failed to delete photo", detail: err?.message ?? err });
+  }
+});
+
+/**
+ * PUT /api/photos/update
+ * Updates photo description and optionally the linked member.
+ * Body: { photo_id, description, link_id? (member), linked_member_id? }
+ */
+router.put("/photos/update", async (req: Request, res: Response) => {
+  const { photo_id, description, link_id, linked_member_id } = req.body;
+
+  if (!photo_id) {
+    return res.status(400).json({ error: "photo_id is required" });
+  }
+
+  try {
+    // 1. Update description in Photos
+    const { error: updateError } = await supabase
+      .from("Photos")
+      .update({ description })
+      .eq("photo_id", photo_id);
+
+    if (updateError) throw updateError;
+
+    // 2. Update linked member if provided
+    if (link_id && linked_member_id) {
+      const { error: linkError } = await supabase
+        .from("Members_Photos")
+        .update({ member_id: linked_member_id })
+        .eq("id", link_id);
+
+      if (linkError) throw linkError;
+    }
+
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error("[photos/update] error:", err);
+    res.status(500).json({ error: "Failed to update photo", detail: err?.message ?? err });
   }
 });
 
