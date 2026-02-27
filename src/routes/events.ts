@@ -78,4 +78,97 @@ router.post('/events', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /api/events/:id
+ * 단일 이벤트 조회
+ */
+router.get('/events/:id', async (req: Request, res: Response) => {
+  const event_id = Number(req.params.id);
+
+  if (isNaN(event_id)) {
+    return res.status(400).json({ error: 'Invalid event_id' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('Events')
+      .select('*')
+      .eq('event_id', event_id)
+      .single();
+
+    if (error) throw error;
+    return res.status(200).json({ event: data });
+  } catch (err: any) {
+    console.error('[events] get error:', err.message);
+    return res.status(500).json({ error: 'Failed to fetch event' });
+  }
+});
+
+/**
+ * PATCH /api/events/:id
+ * 이벤트 수정
+ */
+router.patch('/events/:id', async (req: Request, res: Response) => {
+  const event_id = Number(req.params.id);
+
+  if (isNaN(event_id)) {
+    return res.status(400).json({ error: 'Invalid event_id' });
+  }
+
+  const { event_title, category, start_date, end_date, location, description, is_public } = req.body;
+
+  const updates: Record<string, any> = {};
+  if (event_title !== undefined) updates.event_title = event_title;
+  if (category !== undefined) updates.category = category;
+  if (start_date !== undefined) updates.start_date = start_date;
+  if (end_date !== undefined) updates.end_date = end_date;
+  if (location !== undefined) updates.location = location;
+  if (description !== undefined) updates.description = description;
+  if (is_public !== undefined) updates.is_public = is_public;
+
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('Events')
+      .update(updates)
+      .eq('event_id', event_id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return res.status(200).json({ event: data });
+  } catch (err: any) {
+    console.error('[events] update error:', err.message);
+    return res.status(500).json({ error: 'Failed to update event' });
+  }
+});
+
+/**
+ * DELETE /api/events/:id
+ * 이벤트 삭제
+ */
+router.delete('/events/:id', async (req: Request, res: Response) => {
+  const event_id = Number(req.params.id);
+
+  if (isNaN(event_id)) {
+    return res.status(400).json({ error: 'Invalid event_id' });
+  }
+
+  try {
+    const { error } = await supabase
+      .from('Events')
+      .delete()
+      .eq('event_id', event_id);
+
+    if (error) throw error;
+    return res.status(204).send();
+  } catch (err: any) {
+    console.error('[events] delete error:', err.message);
+    return res.status(500).json({ error: 'Failed to delete event' });
+  }
+});
+
 export default router;
