@@ -1,85 +1,388 @@
-# 📦 Supabase + Express + TypeScript API 서버
+# LIKELION Web Backend
 
-이 프로젝트는 **Supabase 데이터베이스**를 기반으로 한  
-간단한 **Express + TypeScript 백엔드 서버**입니다.
+Backend API server for the LIKELION club homepage.
+Built with Express + TypeScript, using Firebase authentication and Supabase (PostgreSQL) database.
 
----
-
-## 🚀 주요 기능
-
-- `/api/retrieve-all-projects`  
-  → 모든 프로젝트 및 프로젝트 사진 조회
-
-- `/api/retrieve-all-admin`  
-  → 관리자(`is_admin = true`)인 멤버와 해당 멤버 사진 조회
-
-- `/api/retrieve-all-photos`  
-  → 모든 멤버 및 프로젝트 사진 통합 조회
+**Frontend:** [likelion-web-frontend](https://likelion-web-frontend.vercel.app)
 
 ---
 
-## 🛠️ 기술 스택
+## Tech Stack
 
-- **Node.js / Express**
-- **TypeScript**
-- **Supabase** (PostgreSQL + Storage)
-- **dotenv** 환경 변수 관리
-
----
-
-## ⚙️ 설치 및 실행 방법
-
-### 1. 의존성 설치
-
-```bash
-npm install
-```
-
-### 2. 환경 변수 설정
-
-`.env` 파일을 생성하고 아래 내용을 추가하세요:
-
-```
-SUPABASE_URL=https://jfvhyhyragrcunozazhn.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impmdmh5aHlyYWdyY3Vub3phemhuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDQ0MzQ1OSwiZXhwIjoyMDc2MDE5NDU5fQ.4QtAOt5ZkW-raiGkzk-yonCl-cveDkmCsHAF_-QocaQ
-PORT=3000
-FIREBASE_WEB_API_KEY=AIzaSyANvIGvts47XG1vnDIVDSKa8gnh88Z0ukw
-```
-
-### 3. 개발 서버 실행
-
-```bash
-npm run dev
-```
-
-서버가 실행되면:  
-👉 http://localhost:3000/api/retrieve-all-projects  
-에서 API를 테스트할 수 있습니다.
+| Category | Technology |
+|----------|------------|
+| Runtime | Node.js |
+| Framework | Express 5 |
+| Language | TypeScript |
+| Database | Supabase (PostgreSQL) |
+| Authentication | Firebase Admin SDK |
+| File Storage | Supabase Storage |
+| Deployment | Vercel |
 
 ---
 
-## 📁 프로젝트 구조
+## Project Structure
 
 ```
 src/
- ├─ index.ts              # 서버 엔트리 포인트
- ├─ lib/
- │   └─ supabase.ts       # Supabase 클라이언트 설정
- └─ routes/
-     ├─ projects.ts       # 프로젝트 관련 API
-     ├─ admins.ts         # 관리자 관련 API
-     └─ photos.ts         # 사진 관련 API
+├── index.ts                              # Server entry point, router registration
+├── firebase/
+│   ├── firebase.ts                       # Firebase Admin initialization
+│   └── verifyFirebaseToken.ts            # Firebase token verification middleware
+├── lib/
+│   └── supabase.ts                       # Supabase client configuration
+└── routes/
+    ├── projects.ts                       # Project management API
+    ├── admins.ts                         # Admin member retrieval API
+    ├── photos.ts                         # Photo upload/management API
+    ├── signup.ts                         # User signup API
+    ├── login.ts                          # User login API
+    ├── attendance.ts                     # Attendance check-in API
+    ├── qr-create.ts                      # QR session creation API
+    ├── events.ts                         # Events management API
+    ├── adminpage-manage_members.ts       # Admin - member management API
+    ├── adminpage-save_manage_members.ts  # Admin - bulk member save API
+    ├── adminpage-attendance_list.ts      # Admin - attendance list API
+    └── adminpage-admin-cards.ts          # Admin - admin cards management API
 ```
 
 ---
 
-## 🧑‍💻 개발자 참고
+## Getting Started
 
-- Supabase의 테이블 이름 및 관계(FK)는 실제 DB 스키마에 맞게 수정하세요.
-- 서버 키(Service Role Key)는 **절대 클라이언트 코드에 노출하지 마세요.**
+### Environment Variables
+
+Create a `.env` file in the project root with the following variables:
+
+```env
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+PORT=3000
+FIREBASE_WEB_API_KEY=your_firebase_web_api_key
+FIREBASE_SERVICE_ACCOUNT={"type":"service_account", ...}  # JSON string
+```
+
+### Installation & Running
+
+```bash
+# Install dependencies
+npm install
+
+# Run development server (with Hot Reload)
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+```
+
+The development server runs at `http://localhost:3000`.
 
 ---
 
-## 🪪 라이선스
+## API Reference
 
-이 프로젝트는 개인 학습 및 포트폴리오용으로 자유롭게 수정/활용 가능합니다.
+All endpoints use the `/api` prefix.
+
+### Authentication
+
+#### `POST /api/user/signup` — Register a new user
+
+```json
+{
+  "school_email": "user@university.edu",
+  "password": "password123",
+  "korean_name": "홍길동",
+  "english_name": "Hong Gildong",
+  "graduate_year": 2025,
+  "current_university": "Korea University",
+  "team": "Web"
+}
+```
+
+- `school_email`: must end with `.edu`
+- `korean_name`: Korean characters only, max 10 chars
+- `english_name`: letters only, capitalized, max 50 chars
+- `password`: min 6 chars, no spaces
+- Creates both a Firebase Auth account and a Supabase Members record
+
+#### `POST /api/login` — Login
+
+```json
+{
+  "school_email": "user@university.edu",
+  "password": "password123"
+}
+```
+
+Response: `{ idToken, localId, user }`
+Use the `idToken` in subsequent requests as `Authorization: Bearer <idToken>`.
+
+---
+
+### Projects
+
+#### `GET /api/retrieve-all-projects` — Get all projects
+
+Returns all projects with their linked photos and members.
+
+#### `POST /api/projects` — Create a project
+
+```json
+{
+  "project_name": "Project Name",
+  "start_date": "2024-03-01",
+  "end_date": "2024-12-31",
+  "description": "Description",
+  "github_link": "https://github.com/...",
+  "tech_stack": ["React", "Node.js"],
+  "team_name": "Web",
+  "status": "in_progress",
+  "member_ids": [1, 2, 3]
+}
+```
+
+`status`: `planning` | `in_progress` | `completed`
+
+#### `PATCH /api/projects/:id` — Update a project
+
+Partial updates are supported. Passing `member_ids` replaces all existing member links.
+
+#### `DELETE /api/projects/:id` — Delete a project
+
+Cascades to linked member and photo records.
+
+---
+
+### Admin Members
+
+#### `GET /api/retrieve-all-admin` — Get all admin members
+
+Returns members where `is_admin = true`, with linked photos.
+
+---
+
+### Photos
+
+#### `GET /api/retrieve-all-photos` — Get all photos
+
+Returns all photos linked to members and projects. Each photo includes a `source: 'member' | 'project'` field.
+
+#### `POST /api/photos/upload` — Upload a photo
+
+Send as `multipart/form-data`.
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `file` | Yes | Image file to upload |
+| `date` | | Photo date |
+| `description` | | Caption |
+| `member_id` | | Uploader member ID |
+| `linked_member_id` | | Member to link the photo to |
+| `linked_project_id` | | Project to link the photo to |
+
+#### `PUT /api/photos/update` — Update photo metadata
+
+```json
+{
+  "photo_id": 1,
+  "description": "New caption",
+  "link_id": 1,
+  "linked_member_id": 2
+}
+```
+
+#### `DELETE /api/photos/delete` — Delete a photo
+
+```json
+{
+  "photo_id": 1,
+  "link_id": 1,
+  "project_id": 1
+}
+```
+
+Removes the photo from link tables, the Photos table, and Supabase Storage.
+
+---
+
+### Attendance
+
+#### `GET /api/qr-create?meeting_number={number}` — Create a QR session
+
+Creates an attendance session valid for **10 minutes**.
+
+Response: `{ qr_id, qr_url, meeting_number, created_at, expires_at }`
+
+#### `POST /api/attendance` — Check in
+
+```json
+{
+  "school_email": "user@university.edu",
+  "password": "password123",
+  "meeting_number": 1
+}
+```
+
+- Within session window: status `Present`
+- After session expires: status `Late`
+- Duplicate check-in returns `409`
+
+---
+
+### Events
+
+#### `GET /api/events?start=YYYY-MM-DD&end=YYYY-MM-DD` — Get events
+
+Optional `start` and `end` query parameters for date range filtering. Returns all events if not specified.
+
+#### `POST /api/events` — Create an event
+
+```json
+{
+  "event_title": "Event Name",
+  "category": "Category",
+  "start_date": "2024-09-01",
+  "end_date": "2024-09-01",
+  "location": "Location",
+  "description": "Description",
+  "is_public": true
+}
+```
+
+---
+
+### Admin Page
+
+> Admin-only APIs.
+
+#### `GET /api/adminpage/members_list` — Get all members
+
+#### `PUT /api/adminpage/members_edit/:member_id` — Edit a member
+
+Partial updates are supported.
+
+#### `DELETE /api/adminpage/members_delete/:member_id` — Delete a member
+
+#### `POST /api/adminpage/save_manage_members` — Bulk update/delete members
+
+```json
+{
+  "updates": [{ "member_id": 1, "team": "Web" }],
+  "deletes": [2, 3]
+}
+```
+
+Also deletes the corresponding Firebase Auth accounts for deleted members.
+
+#### `GET /api/adminpage/attendance_list?meeting_number={number}` — Get attendance list
+
+Returns attendance records for all active members (`is_active = true`). Members with no record are shown as `Absent`. Omit `meeting_number` to return all meetings.
+
+#### `POST /api/adminpage/attendance_status` — Update attendance status
+
+```json
+{
+  "member_id": 1,
+  "meeting_number": 1,
+  "status": "Present"
+}
+```
+
+`status`: `Present` | `Late` | `Absent`. Creates a new record if one does not exist.
+
+---
+
+### Admin Cards
+
+#### `GET /api/admin-cards` — Get all admin cards (public)
+
+Public endpoint for the landing page. Ordered by `display_order` ascending.
+
+Response fields: `id`, `member_id`, `position`, `display_name`, `description`, `display_order`
+
+#### `POST /api/adminpage/admin-cards` — Create an admin card
+
+```json
+{
+  "position": "President",
+  "display_name": "Hong Gildong",
+  "description": "Hello!",
+  "member_id": 1,
+  "display_order": 1
+}
+```
+
+Returns `409` if `display_order` is already taken.
+
+#### `PUT /api/adminpage/admin-cards/:id` — Update an admin card
+
+#### `DELETE /api/adminpage/admin-cards/:id` — Delete an admin card
+
+---
+
+## Database Schema
+
+```
+Members                    Projects                   Photos
+─────────────────────      ─────────────────────      ─────────────────────
+member_id (PK)             project_id (PK)            photo_id (PK)
+school_email (unique)      project_name               photo_url
+korean_name                start_date                 date
+english_name               end_date                   description
+graduate_year              description                member_id (FK)
+current_university         github_link
+team                       tech_stack[]
+is_admin                   team_name
+is_undergraduate           status
+is_mentor
+is_graduated               Attendance_Session         Events
+is_active                  ─────────────────────      ─────────────────────
+                           qr_id (PK)                 event_id (PK)
+Project_Member_Link        meeting_number             event_title
+─────────────────────      created_at                 category
+project_id (FK)            expires_at                 start_date
+member_id (FK)                                        end_date
+                           Attendance                 location
+Project_Photo_Link         ─────────────────────      description
+─────────────────────      member_id (FK)             created_by (FK)
+project_id (FK)            meeting_number             is_public
+photo_id (FK)              status
+                           timestamp                  Admin_Cards
+Members_Photos                                        ─────────────────────
+─────────────────────                                 id (PK)
+member_id (FK)                                        member_id (FK)
+photo_id (FK)                                         position
+                                                      display_name
+                                                      description
+                                                      display_order (unique)
+```
+
+---
+
+## Authentication Flow
+
+```
+Client                       Backend                    Firebase
+  │                             │                           │
+  │── POST /api/login ─────────▶│                           │
+  │                             │── Firebase REST API ─────▶│
+  │                             │◀── idToken ───────────────│
+  │◀── { idToken, user } ───────│                           │
+  │                             │                           │
+  │── Request + Bearer Token ──▶│                           │
+  │                             │── verifyIdToken ─────────▶│
+  │                             │◀── decoded user ──────────│
+  │◀── Response ────────────────│                           │
+```
+
+---
+
+## Deployment
+
+- **Platform:** Vercel (Node.js Runtime)
+- **Config:** `vercel.json`
+- CORS is restricted to `https://likelion-web-frontend.vercel.app`
+- The `SUPABASE_SERVICE_ROLE_KEY` is server-side only — never expose it to the client
