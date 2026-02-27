@@ -8,11 +8,11 @@ const router = Router();
  */
 async function shiftUp(from: number) {
   const { data } = await supabase
-    .from("AdminCards_Order")
+    .from("AdminCard_Order")
     .select("card_id, order_num")
     .gte("order_num", from);
   if (data && data.length > 0) {
-    await supabase.from("AdminCards_Order").upsert(
+    await supabase.from("AdminCard_Order").upsert(
       data.map((o: any) => ({ card_id: o.card_id, order_num: o.order_num + 1 }))
     );
   }
@@ -23,11 +23,11 @@ async function shiftUp(from: number) {
  */
 async function shiftDown(from: number) {
   const { data } = await supabase
-    .from("AdminCards_Order")
+    .from("AdminCard_Order")
     .select("card_id, order_num")
     .gt("order_num", from);
   if (data && data.length > 0) {
-    await supabase.from("AdminCards_Order").upsert(
+    await supabase.from("AdminCard_Order").upsert(
       data.map((o: any) => ({ card_id: o.card_id, order_num: o.order_num - 1 }))
     );
   }
@@ -39,9 +39,9 @@ async function shiftDown(from: number) {
  */
 router.get("/admin-cards", async (_req: Request, res: Response) => {
   try {
-    // 1. AdminCards_Order에서 순서 조회
+    // 1. AdminCard_Order에서 순서 조회
     const { data: orders, error: orderError } = await supabase
-      .from("AdminCards_Order")
+      .from("AdminCard_Order")
       .select("card_id, order_num")
       .order("order_num", { ascending: true });
 
@@ -109,7 +109,7 @@ router.post("/adminpage/admin-cards", async (req: Request, res: Response) => {
     } else {
       // 맨 끝에 추가: 현재 최대 order_num + 1
       const { data: maxRow } = await supabase
-        .from("AdminCards_Order")
+        .from("AdminCard_Order")
         .select("order_num")
         .order("order_num", { ascending: false })
         .limit(1)
@@ -117,9 +117,9 @@ router.post("/adminpage/admin-cards", async (req: Request, res: Response) => {
       targetOrder = maxRow ? maxRow.order_num + 1 : 1;
     }
 
-    // 3. AdminCards_Order에 순서 삽입
+    // 3. AdminCard_Order에 순서 삽입
     const { error: orderError } = await supabase
-      .from("AdminCards_Order")
+      .from("AdminCard_Order")
       .insert({ card_id: card.card_id, order_num: targetOrder });
 
     if (orderError) throw orderError;
@@ -166,7 +166,7 @@ router.put("/adminpage/admin-cards/:id", async (req: Request, res: Response) => 
       const new_order = Number(order_num);
 
       const { data: currentOrder, error: currentError } = await supabase
-        .from("AdminCards_Order")
+        .from("AdminCard_Order")
         .select("order_num")
         .eq("card_id", card_id)
         .single();
@@ -178,28 +178,28 @@ router.put("/adminpage/admin-cards/:id", async (req: Request, res: Response) => 
         if (new_order > old_order) {
           // 아래로 이동: (old, new] 범위 카드들 -1
           const { data: affected } = await supabase
-            .from("AdminCards_Order")
+            .from("AdminCard_Order")
             .select("card_id, order_num")
             .gt("order_num", old_order)
             .lte("order_num", new_order)
             .neq("card_id", card_id);
 
           if (affected && affected.length > 0) {
-            await supabase.from("AdminCards_Order").upsert(
+            await supabase.from("AdminCard_Order").upsert(
               affected.map((o: any) => ({ card_id: o.card_id, order_num: o.order_num - 1 }))
             );
           }
         } else {
           // 위로 이동: [new, old) 범위 카드들 +1
           const { data: affected } = await supabase
-            .from("AdminCards_Order")
+            .from("AdminCard_Order")
             .select("card_id, order_num")
             .gte("order_num", new_order)
             .lt("order_num", old_order)
             .neq("card_id", card_id);
 
           if (affected && affected.length > 0) {
-            await supabase.from("AdminCards_Order").upsert(
+            await supabase.from("AdminCard_Order").upsert(
               affected.map((o: any) => ({ card_id: o.card_id, order_num: o.order_num + 1 }))
             );
           }
@@ -207,7 +207,7 @@ router.put("/adminpage/admin-cards/:id", async (req: Request, res: Response) => 
 
         // 이 카드의 order_num 업데이트
         const { error: updateOrderError } = await supabase
-          .from("AdminCards_Order")
+          .from("AdminCard_Order")
           .update({ order_num: new_order })
           .eq("card_id", card_id);
 
@@ -232,12 +232,12 @@ router.delete("/adminpage/admin-cards/:id", async (req: Request, res: Response) 
   try {
     // 1. 삭제할 카드의 order_num 조회
     const { data: orderRow } = await supabase
-      .from("AdminCards_Order")
+      .from("AdminCard_Order")
       .select("order_num")
       .eq("card_id", card_id)
       .maybeSingle();
 
-    // 2. 카드 삭제 (AdminCards_Order ON DELETE CASCADE 가정)
+    // 2. 카드 삭제 (AdminCard_Order ON DELETE CASCADE 가정)
     const { error: deleteError } = await supabase
       .from("Admin_Cards")
       .delete()
