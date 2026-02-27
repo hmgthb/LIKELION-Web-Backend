@@ -104,11 +104,7 @@ router.get('/events/:id', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * PATCH /api/events/:id
- * 이벤트 수정
- */
-router.patch('/events/:id', async (req: Request, res: Response) => {
+async function updateEvent(req: Request, res: Response) {
   const event_id = Number(req.params.id);
 
   if (isNaN(event_id)) {
@@ -144,7 +140,15 @@ router.patch('/events/:id', async (req: Request, res: Response) => {
     console.error('[events] update error:', err.message);
     return res.status(500).json({ error: 'Failed to update event' });
   }
-});
+}
+
+/**
+ * PUT /api/events/:id
+ * PATCH /api/events/:id
+ * 이벤트 수정
+ */
+router.put('/events/:id', updateEvent);
+router.patch('/events/:id', updateEvent);
 
 /**
  * DELETE /api/events/:id
