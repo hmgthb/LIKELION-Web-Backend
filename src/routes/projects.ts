@@ -20,7 +20,7 @@ router.get('/retrieve-all-projects', async (_req: Request, res: Response) => {
       tech_stack,
       team_name,
       status,
-      Project_Photo_Link:Project_Photo_Link (
+      Projects_Photos (
         photo:Photos (
           photo_id,
           date,
@@ -54,7 +54,7 @@ router.get('/retrieve-all-projects', async (_req: Request, res: Response) => {
     tech_stack: p.tech_stack ?? [],
     team_name: p.team_name,
     status: p.status,
-    photos: (p.Project_Photo_Link ?? [])
+    photos: (p.Projects_Photos ?? [])
       .map((link: any) => link?.photo)
       .filter(Boolean),
     members: (p.Project_Member_Link ?? [])
