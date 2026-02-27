@@ -120,32 +120,30 @@ router.post("/photos/upload", upload.single("file"), async (req: Request, res: R
     return res.status(500).json({ error: "Failed to save photo metadata" });
   }
 
-  // 4. 멤버 또는 프로젝트에 연결 (기존 사진이 있으면 모두 교체)
+  // 4. 멤버 또는 프로젝트에 연결 (기존 사진이 있으면 교체)
   if (linked_member_id) {
-    // 기존 링크 전체 조회
-    const { data: existingLinks } = await supabase
+    // 기존 링크 조회
+    const { data: existingLink } = await supabase
       .from("Members_Photos")
       .select("id, photo_id")
-      .eq("member_id", Number(linked_member_id));
+      .eq("member_id", Number(linked_member_id))
+      .maybeSingle();
 
-    if (existingLinks && existingLinks.length > 0) {
-      const oldPhotoIds = existingLinks.map((l: any) => l.photo_id);
-
-      // 기존 photo_url 조회
-      const { data: oldPhotos } = await supabase
+    if (existingLink) {
+      // 기존 Photos 레코드에서 photo_url 조회
+      const { data: oldPhoto } = await supabase
         .from("Photos")
         .select("photo_url")
-        .in("photo_id", oldPhotoIds);
+        .eq("photo_id", existingLink.photo_id)
+        .single();
 
-      // 링크 삭제
-      await supabase.from("Members_Photos").delete().eq("member_id", Number(linked_member_id));
-      // Photos 레코드 삭제
-      await supabase.from("Photos").delete().in("photo_id", oldPhotoIds);
-      // Storage 파일 삭제
-      const oldFileNames = (oldPhotos ?? [])
-        .map((p: any) => p.photo_url?.split("/photos/").pop())
-        .filter(Boolean);
-      if (oldFileNames.length > 0) await supabase.storage.from("photos").remove(oldFileNames);
+      // 링크, Photos 레코드, Storage 파일 삭제
+      await supabase.from("Members_Photos").delete().eq("id", existingLink.id);
+      await supabase.from("Photos").delete().eq("photo_id", existingLink.photo_id);
+      if (oldPhoto?.photo_url) {
+        const oldFileName = oldPhoto.photo_url.split("/photos/").pop();
+        if (oldFileName) await supabase.storage.from("photos").remove([oldFileName]);
+      }
     }
 
     const { error: linkError } = await supabase
@@ -155,30 +153,28 @@ router.post("/photos/upload", upload.single("file"), async (req: Request, res: R
   }
 
   if (linked_project_id) {
-    // 기존 링크 전체 조회
-    const { data: existingLinks } = await supabase
+    // 기존 링크 조회
+    const { data: existingLink } = await supabase
       .from("Projects_Photos")
       .select("id, photo_id")
-      .eq("project_id", Number(linked_project_id));
+      .eq("project_id", Number(linked_project_id))
+      .maybeSingle();
 
-    if (existingLinks && existingLinks.length > 0) {
-      const oldPhotoIds = existingLinks.map((l: any) => l.photo_id);
-
-      // 기존 photo_url 조회
-      const { data: oldPhotos } = await supabase
+    if (existingLink) {
+      // 기존 Photos 레코드에서 photo_url 조회
+      const { data: oldPhoto } = await supabase
         .from("Photos")
         .select("photo_url")
-        .in("photo_id", oldPhotoIds);
+        .eq("photo_id", existingLink.photo_id)
+        .single();
 
-      // 링크 삭제
-      await supabase.from("Projects_Photos").delete().eq("project_id", Number(linked_project_id));
-      // Photos 레코드 삭제
-      await supabase.from("Photos").delete().in("photo_id", oldPhotoIds);
-      // Storage 파일 삭제
-      const oldFileNames = (oldPhotos ?? [])
-        .map((p: any) => p.photo_url?.split("/photos/").pop())
-        .filter(Boolean);
-      if (oldFileNames.length > 0) await supabase.storage.from("photos").remove(oldFileNames);
+      // 링크, Photos 레코드, Storage 파일 삭제
+      await supabase.from("Projects_Photos").delete().eq("id", existingLink.id);
+      await supabase.from("Photos").delete().eq("photo_id", existingLink.photo_id);
+      if (oldPhoto?.photo_url) {
+        const oldFileName = oldPhoto.photo_url.split("/photos/").pop();
+        if (oldFileName) await supabase.storage.from("photos").remove([oldFileName]);
+      }
     }
 
     const { error: linkError } = await supabase
