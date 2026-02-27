@@ -11,13 +11,13 @@ const upload = multer({ storage: multer.memoryStorage() });
  */
 router.get("/retrieve-all-photos", async (_req: Request, res: Response) => {
   try {
-    // --- 1. Link tables (no FK join) ---
+    // --- 1. Link tables ---
     const [
       { data: memberLinks, error: memberLinksError },
       { data: projectLinks, error: projectLinksError },
     ] = await Promise.all([
       supabase.from("Members_Photos").select("id, member_id, photo_id"),
-      supabase.from("Projects_Photos").select("project_id, photo_id, project_photo_url"),
+      supabase.from("Projects_Photos").select("id, project_id, photo_id"),
     ]);
 
     if (memberLinksError) throw memberLinksError;
@@ -61,11 +61,12 @@ router.get("/retrieve-all-photos", async (_req: Request, res: Response) => {
     const projectPhotoList = (projectLinks ?? []).map((p: any) => {
       const photo = photoMap[p.photo_id] ?? {};
       return {
+        project_link_id: p.id,
         project_id: p.project_id,
         photo_id: p.photo_id,
         date: photo.date,
         description: photo.description,
-        photo_url: photo.photo_url ?? p.project_photo_url,
+        photo_url: photo.photo_url,
         source: "project",
       };
     });
@@ -140,10 +141,10 @@ router.post("/photos/upload", upload.single("file"), async (req: Request, res: R
 /**
  * DELETE /api/photos/delete
  * Deletes a photo: removes the link record, the Photos row, and the Storage file.
- * Body: { photo_id, link_id? (member), project_id? (project) }
+ * Body: { photo_id, link_id? (Members_Photos.id), project_link_id? (Project_Photo_Link.id) }
  */
 router.delete("/photos/delete", async (req: Request, res: Response) => {
-  const { photo_id, link_id, project_id } = req.body;
+  const { photo_id, link_id, project_link_id } = req.body;
 
   if (!photo_id) {
     return res.status(400).json({ error: "photo_id is required" });
@@ -154,12 +155,11 @@ router.delete("/photos/delete", async (req: Request, res: Response) => {
     if (link_id) {
       const { error } = await supabase.from("Members_Photos").delete().eq("id", link_id);
       if (error) throw error;
-    } else if (project_id) {
+    } else if (project_link_id) {
       const { error } = await supabase
         .from("Projects_Photos")
         .delete()
-        .eq("project_id", project_id)
-        .eq("photo_id", photo_id);
+        .eq("id", project_link_id);
       if (error) throw error;
     }
 
@@ -193,11 +193,11 @@ router.delete("/photos/delete", async (req: Request, res: Response) => {
 
 /**
  * PUT /api/photos/update
- * Updates photo description and optionally the linked member.
- * Body: { photo_id, description, link_id? (member), linked_member_id? }
+ * Updates photo description and optionally the linked member or project.
+ * Body: { photo_id, description?, link_id? (Members_Photos.id), linked_member_id?, project_link_id? (Project_Photo_Link.id), linked_project_id? }
  */
 router.put("/photos/update", async (req: Request, res: Response) => {
-  const { photo_id, description, link_id, linked_member_id } = req.body;
+  const { photo_id, description, link_id, linked_member_id, project_link_id, linked_project_id } = req.body;
 
   if (!photo_id) {
     return res.status(400).json({ error: "photo_id is required" });
@@ -216,8 +216,18 @@ router.put("/photos/update", async (req: Request, res: Response) => {
     if (link_id && linked_member_id) {
       const { error: linkError } = await supabase
         .from("Members_Photos")
-        .update({ member_id: linked_member_id })
+        .update({ member_id: Number(linked_member_id) })
         .eq("id", link_id);
+
+      if (linkError) throw linkError;
+    }
+
+    // 3. Update linked project if provided
+    if (project_link_id && linked_project_id) {
+      const { error: linkError } = await supabase
+        .from("Projects_Photos")
+        .update({ project_id: Number(linked_project_id) })
+        .eq("id", project_link_id);
 
       if (linkError) throw linkError;
     }
