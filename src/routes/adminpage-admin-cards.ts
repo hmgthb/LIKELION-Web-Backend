@@ -5,31 +5,41 @@ const router = Router();
 
 /**
  * Helper: order_num >= from 인 카드들을 +1 shift (삽입 시 자리 확보)
+ * UNIQUE 제약 위반 방지를 위해 order_num 높은 순서부터 순차 업데이트
  */
 async function shiftUp(from: number) {
   const { data } = await supabase
     .from("AdminCard_Order")
     .select("card_id, order_num")
-    .gte("order_num", from);
+    .gte("order_num", from)
+    .order("order_num", { ascending: false });
   if (data && data.length > 0) {
-    await supabase.from("AdminCard_Order").upsert(
-      data.map((o: any) => ({ card_id: o.card_id, order_num: o.order_num + 1 }))
-    );
+    for (const o of data) {
+      await supabase
+        .from("AdminCard_Order")
+        .update({ order_num: o.order_num + 1 })
+        .eq("card_id", o.card_id);
+    }
   }
 }
 
 /**
  * Helper: order_num > from 인 카드들을 -1 shift (삭제 후 빈 자리 채우기)
+ * UNIQUE 제약 위반 방지를 위해 order_num 낮은 순서부터 순차 업데이트
  */
 async function shiftDown(from: number) {
   const { data } = await supabase
     .from("AdminCard_Order")
     .select("card_id, order_num")
-    .gt("order_num", from);
+    .gt("order_num", from)
+    .order("order_num", { ascending: true });
   if (data && data.length > 0) {
-    await supabase.from("AdminCard_Order").upsert(
-      data.map((o: any) => ({ card_id: o.card_id, order_num: o.order_num - 1 }))
-    );
+    for (const o of data) {
+      await supabase
+        .from("AdminCard_Order")
+        .update({ order_num: o.order_num - 1 })
+        .eq("card_id", o.card_id);
+    }
   }
 }
 
@@ -175,33 +185,45 @@ router.put("/adminpage/admin-cards/:id", async (req: Request, res: Response) => 
       const old_order = currentOrder.order_num;
 
       if (old_order !== new_order) {
+        // 이동할 카드를 임시 위치(99999)로 옮겨 충돌 방지
+        await supabase
+          .from("AdminCard_Order")
+          .update({ order_num: 99999 })
+          .eq("card_id", card_id);
+
         if (new_order > old_order) {
-          // 아래로 이동: (old, new] 범위 카드들 -1
+          // 아래로 이동: (old, new] 범위 카드들 -1, 낮은 순부터 처리
           const { data: affected } = await supabase
             .from("AdminCard_Order")
             .select("card_id, order_num")
             .gt("order_num", old_order)
             .lte("order_num", new_order)
-            .neq("card_id", card_id);
+            .order("order_num", { ascending: true });
 
           if (affected && affected.length > 0) {
-            await supabase.from("AdminCard_Order").upsert(
-              affected.map((o: any) => ({ card_id: o.card_id, order_num: o.order_num - 1 }))
-            );
+            for (const o of affected) {
+              await supabase
+                .from("AdminCard_Order")
+                .update({ order_num: o.order_num - 1 })
+                .eq("card_id", o.card_id);
+            }
           }
         } else {
-          // 위로 이동: [new, old) 범위 카드들 +1
+          // 위로 이동: [new, old) 범위 카드들 +1, 높은 순부터 처리
           const { data: affected } = await supabase
             .from("AdminCard_Order")
             .select("card_id, order_num")
             .gte("order_num", new_order)
             .lt("order_num", old_order)
-            .neq("card_id", card_id);
+            .order("order_num", { ascending: false });
 
           if (affected && affected.length > 0) {
-            await supabase.from("AdminCard_Order").upsert(
-              affected.map((o: any) => ({ card_id: o.card_id, order_num: o.order_num + 1 }))
-            );
+            for (const o of affected) {
+              await supabase
+                .from("AdminCard_Order")
+                .update({ order_num: o.order_num + 1 })
+                .eq("card_id", o.card_id);
+            }
           }
         }
 
