@@ -66,9 +66,13 @@ router.post('/login', async (req: Request, res: Response) => {
 
     if (
       firebaseError === 'EMAIL_NOT_FOUND' ||
-      firebaseError === 'INVALID_PASSWORD'
+      firebaseError === 'INVALID_PASSWORD' ||
+      firebaseError === 'INVALID_LOGIN_CREDENTIALS'
     ) {
       return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    else if (firebaseError === 'TOO_MANY_ATTEMPTS_TRY_LATER') {
+      return res.status(403).json({error: 'Too many attempt try again later'})
     }
 
     res
