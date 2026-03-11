@@ -156,4 +156,53 @@ router.post('/user/signup', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * POST /api/user/resend-verification
+ * Body: { school_email }
+ * Resends email verification to an unverified Firebase user.
+ */
+router.post('/user/resend-verification', async (req: Request, res: Response) => {
+  const { school_email } = req.body;
+
+  if (!school_email) {
+    return res.status(400).json({ error: 'school_email is required.' });
+  }
+
+  try {
+    const apiKey = process.env.FIREBASE_WEB_API_KEY;
+
+    // 1. 이메일로 Firebase 유저 조회
+    const user = await admin.auth().getUserByEmail(school_email);
+
+    // 이미 인증된 경우
+    if (user.emailVerified) {
+      return res.status(400).json({ error: 'Email is already verified.' });
+    }
+
+    // 2. 커스텀 토큰 발급 → idToken 교환
+    const customToken = await admin.auth().createCustomToken(user.uid);
+
+    const exchangeRes = await axios.post<{ idToken: string }>(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`,
+      { token: customToken, returnSecureToken: true }
+    );
+
+    // 3. 인증 이메일 재발송
+    await axios.post(
+      `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`,
+      { requestType: 'VERIFY_EMAIL', idToken: exchangeRes.data.idToken }
+    );
+
+    res.status(200).json({ message: 'Verification email sent.' });
+  } catch (err: any) {
+    console.error('[resend-verification] error:', err.response?.data || err.message);
+
+    if (err.code === 'auth/user-not-found') {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    res.status(500).json({ error: err.message || 'Failed to resend verification email.' });
+  }
+});
+
 export default router;
