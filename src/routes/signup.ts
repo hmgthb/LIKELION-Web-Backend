@@ -197,8 +197,12 @@ router.post('/resend-verification', async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error('[resend-verification] error:', err.response?.data || err.message);
 
+    const firebaseError = err.response?.data?.error?.message;
+
     if (err.code === 'auth/user-not-found') {
       return res.status(404).json({ error: 'User not found.' });
+    } else if (firebaseError === 'TOO_MANY_ATTEMPTS_TRY_LATER') {
+      return res.status(400).json({ error: 'Too many attempt try again later' });
     }
 
     res.status(500).json({ error: err.message || 'Failed to resend verification email.' });
