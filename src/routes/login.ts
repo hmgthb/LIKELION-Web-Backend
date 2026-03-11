@@ -72,7 +72,7 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     else if (firebaseError === 'TOO_MANY_ATTEMPTS_TRY_LATER') {
-      return res.status(403).json({error: 'Too many attempt try again later'})
+      return res.status(400).json({error: 'Too many attempt try again later'})
     }
 
     res
