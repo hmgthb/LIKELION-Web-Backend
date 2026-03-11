@@ -161,7 +161,7 @@ router.post('/user/signup', async (req: Request, res: Response) => {
  * Body: { school_email }
  * Resends email verification to an unverified Firebase user.
  */
-router.post('/user/resend-verification', async (req: Request, res: Response) => {
+router.post('/resend-verification', async (req: Request, res: Response) => {
   const { school_email } = req.body;
 
   if (!school_email) {
