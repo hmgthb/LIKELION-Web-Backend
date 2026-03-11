@@ -201,7 +201,7 @@ router.post('/resend-verification', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'User not found.' });
     }
 
-    res.status(500).json({ error: err.message || 'Failed to resend verification email.' });
+    res.status(500).json({ error: err.message || 'Failed to resend verification email.', detail: err.response?.data });
   }
 });
 
