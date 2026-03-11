@@ -189,6 +189,23 @@ router.delete('/projects/:id', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Invalid project_id' });
   }
 
+  // 연결된 사진의 Storage 파일 먼저 삭제
+  const { data: photoLinks } = await supabase
+    .from('Projects_Photos')
+    .select('photo:Photos(photo_url)')
+    .eq('project_id', project_id);
+
+  const fileNames = (photoLinks ?? [])
+    .map((link: any) => link?.photo?.photo_url)
+    .filter(Boolean)
+    .map((url: string) => url.split('/photos/').pop())
+    .filter(Boolean) as string[];
+
+  if (fileNames.length > 0) {
+    await supabase.storage.from('photos').remove(fileNames);
+  }
+
+  // DB 삭제 (CASCADE로 Projects_Photos, Photos 자동 삭제)
   const { error } = await supabase
     .from('Projects')
     .delete()
