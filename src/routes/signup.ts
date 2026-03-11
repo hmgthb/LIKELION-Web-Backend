@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import admin from '../firebase/firebase';
 import { supabase } from '../lib/supabase';
+import axios from 'axios';
 
 const router = Router();
 
@@ -111,15 +112,14 @@ router.post('/user/signup', async (req: Request, res: Response) => {
     }
 
     // Firebase Auth 계정 생성
-    const userRecord = await admin.auth().createUser({
+    await admin.auth().createUser({
       email: school_email,
       password,
     });
 
     // Supabase에 사용자 정보 저장
-    const { data, error } = await supabase.from('Members').insert([
+    const { error } = await supabase.from('Members').insert([
       {
-        //member_id: userRecord.uid,
         school_email,
         korean_name,
         english_name,
@@ -131,9 +131,19 @@ router.post('/user/signup', async (req: Request, res: Response) => {
 
     if (error) throw error;
 
+    // 이메일 인증 메일 발송 (Firebase REST API)
+    const apiKey = process.env.FIREBASE_WEB_API_KEY;
+    const signInRes = await axios.post<{ idToken: string }>(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
+      { email: school_email, password, returnSecureToken: true }
+    );
+    await axios.post(
+      `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`,
+      { requestType: 'VERIFY_EMAIL', idToken: signInRes.data.idToken }
+    );
+
     res.status(201).json({
-      message: 'Member registered successfully!',
-      //member_id: userRecord.uid,
+      message: 'Member registered successfully! Please check your email to verify your account.',
     });
   } catch (err: any) {
     console.error('[member-signup] error:', err);
