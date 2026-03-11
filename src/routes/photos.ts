@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import multer from "multer";
 import { supabase } from "../lib/supabase";
+import { verifyFirebaseToken } from "../firebase/verifyFirebaseToken";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -83,7 +84,7 @@ router.get("/retrieve-all-photos", async (_req: Request, res: Response) => {
  * Uploads a photo to Supabase Storage and saves metadata to Photos table.
  * Form-data: file (required), date?, description?, member_id?, linked_member_id?, linked_project_id?
  */
-router.post("/photos/upload", upload.single("file"), async (req: Request, res: Response) => {
+router.post("/photos/upload", verifyFirebaseToken, upload.single("file"), async (req: Request, res: Response) => {
   const file = req.file;
   if (!file) {
     return res.status(400).json({ error: "file is required" });
@@ -191,7 +192,7 @@ router.post("/photos/upload", upload.single("file"), async (req: Request, res: R
  * Deletes a photo: removes the link record, the Photos row, and the Storage file.
  * Body: { photo_id, link_id? (Members_Photos.id), project_link_id? (Project_Photo_Link.id) }
  */
-router.delete("/photos/delete", async (req: Request, res: Response) => {
+router.delete("/photos/delete", verifyFirebaseToken, async (req: Request, res: Response) => {
   const { photo_id, link_id, project_link_id } = req.body;
 
   if (!photo_id) {
@@ -244,7 +245,7 @@ router.delete("/photos/delete", async (req: Request, res: Response) => {
  * Updates photo description and optionally the linked member or project.
  * Body: { photo_id, description?, link_id? (Members_Photos.id), linked_member_id?, project_link_id? (Project_Photo_Link.id), linked_project_id? }
  */
-router.put("/photos/update", async (req: Request, res: Response) => {
+router.put("/photos/update", verifyFirebaseToken, async (req: Request, res: Response) => {
   const { photo_id, description, link_id, linked_member_id, project_link_id, linked_project_id } = req.body;
 
   if (!photo_id) {
