@@ -1,5 +1,4 @@
 import { Router, Request, Response } from 'express';
-import admin from '../firebase/firebase';
 import { supabase } from '../lib/supabase';
 import axios from 'axios';
 
@@ -33,12 +32,6 @@ router.post('/login', async (req: Request, res: Response) => {
     });
 
     const { idToken, localId } = response.data;
-
-    // ✅ 이메일 인증 여부 확인
-    const userRecord = await admin.auth().getUser(localId);
-    if (!userRecord.emailVerified) {
-      return res.status(403).json({ error: 'Email not verified. Please check your inbox and verify your account.' });
-    }
 
     // ✅ Supabase에서 사용자 정보 가져오기
     const { data: users, error } = await supabase
